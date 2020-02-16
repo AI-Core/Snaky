@@ -1,10 +1,10 @@
 import time
 from snaky_env import *
 
-env = SnakyEnv(80)
+env = SnakyEnv(50)
 
 # multiplayer
-'''players = [Player(env) for _ in range(55)]
+'''players = [Player(env) for _ in range(25)]
 env.reset()
 
 game_over=False
@@ -15,12 +15,14 @@ while not game_over:
         if env.players_in_game[i]==1:
             obs, reward, done, game_over, info = env.players[i].step(np.random.randint(4))
     env.render()
+    time.sleep(0.3)
     step+=1
     
 env.render()
-'''
 
+'''
 # single player
+
 p1 = Player(env)
 env.reset()
 
@@ -29,6 +31,9 @@ step=0
 while not game_over:
     obs, reward, done, game_over, info = p1.step(np.random.randint(4))
     env.render()
+    print(obs.shape)
+    print(obs, '\n\n')
+    time.sleep(0.5)
     step+=1
     
 env.render()

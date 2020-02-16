@@ -231,12 +231,25 @@ class Player():
         self.env.players.append(self)
         self.env.agent_cols.append(tuple(np.random.rand(3)))
         self.player_id = len(self.env.players)
+        self.prev_action = None
     def pick_action(self, observation):
         raise NotImplementedError
         return action
     def step(self, action):
-        ret = self.env.step(action, self.player_id)
-        return ret
+        #prevents crashing into itself
+        if action==0 and self.prev_action==1:
+            action = 1
+        elif action==1 and self.prev_action==0:
+            action = 0
+        elif action==2 and self.prev_action==3:
+            action = 3
+        elif action==3 and self.prev_action==2:
+            action = 2
+        obs, reward, done, game_over, info = self.env.step(action, self.player_id)
+        self.prev_action = action
+        if done or game_over:
+            self.prev_action=None
+        return obs, reward, done, game_over, info
     def move(self, obs):
         action = self.pick_action(obs)
         self.step(action)
