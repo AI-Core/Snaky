@@ -4,7 +4,7 @@ from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
 
-#from griddy_render import *
+from snaky_render import *
 from gym.envs.classic_control import rendering
 
 class SnakyEnv(gym.Env):
@@ -36,7 +36,7 @@ class SnakyEnv(gym.Env):
         'video.frames_per_second' : 50
     }
 
-    def __init__(self, size=4):
+    def __init__(self, size=15):
         self.n_squares_height = size
         self.n_squares_width = size
 
@@ -78,6 +78,7 @@ class SnakyEnv(gym.Env):
         self.steps_beyond_done = None
         self.players_in_game = np.ones(self.get_n_players())
         self.players_moved = np.zeros(self.get_n_players())
+        self.game_win_order=np.ones(self.get_n_players()).astype('int')
         return [self.state_to_observation(np.copy(self.state), player.player_id) for player in self.players]
 
     def step(self, action, player_id):
@@ -89,7 +90,7 @@ class SnakyEnv(gym.Env):
         #check if player in game
         if self.players_in_game[player_id-1]==0:
             logger.warn("This player is out of the game.")
-            reward, done, game_over = 0.0, 1, 0
+            reward, done, game_over = 0.0, True, 0
             obs = self.state_to_observation(np.copy(self.state), player_id)
             return obs, reward, done, game_over, {}
         
@@ -117,6 +118,7 @@ class SnakyEnv(gym.Env):
             self.state[1, agent_pos[0], agent_pos[1]] = player_id #add wall at the location we just were
         else:
             reward=0
+            self.game_win_order[player_id-1]=sum(self.players_in_game)
             self.players_in_game[player_id-1]=0    
         self.players_moved[player_id-1]=1
 
@@ -129,8 +131,13 @@ class SnakyEnv(gym.Env):
         if turn_over:
             self.players_moved = np.zeros(self.get_n_players())
         game_over=False
-        if sum(self.players_in_game)==0:
-               game_over=True
+        if len(self.players_in_game)==1:
+            if sum(self.players_in_game)==0:
+                game_over=True
+        else:
+            if sum(self.players_in_game)==1:
+                game_over=True
+                self.players[np.where(self.game_win_order==1)[0][0]].wins+=1
         if game_over:
             if self.steps_beyond_done is None: #everyone has just taken their turn
                 self.steps_beyond_done = 0
@@ -138,7 +145,7 @@ class SnakyEnv(gym.Env):
                 if self.steps_beyond_done == 0:
                     logger.warn("You are calling 'step()' even though this environment has already returned done = True. You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior.")
                 self.steps_beyond_done += 1
-            reward, done = 0.0, 1
+            reward, done = 0.0, True
         
         obs = self.state_to_observation(np.copy(self.state), player_id)
         return obs, reward, done, game_over, {}
@@ -154,6 +161,7 @@ class SnakyEnv(gym.Env):
 
     def render(self, values=None, mode='human'):
         screen_width = 800
+        info_width = 250
         screen_height = 800
 
         square_size_height = screen_height/self.n_squares_height
@@ -161,7 +169,7 @@ class SnakyEnv(gym.Env):
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(screen_width, screen_height)
+            self.viewer = rendering.Viewer(screen_width+info_width, screen_height)
             #add invisible squares for visualising state values
             l, r, t, b = -square_size_width/2, square_size_width/2, square_size_height/2, -square_size_height/2
             self.squares = [[rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)]) for j in range(0, self.n_squares_width)] for i in range(0, self.n_squares_height)]
@@ -195,14 +203,27 @@ class SnakyEnv(gym.Env):
                 self.viewer.add_geom(agent)
                 self.all_agents.append(agent)
                 self.all_agents_trans.append(agenttrans)
-            #the goal
-            '''self.goal = make_oval(width=square_size_width/4, height=square_size_height/4)
-            self.goal.set_color(1,0,1)
-            self.goaltrans = rendering.Transform()
-            self.goal.add_attr(self.goaltrans)
-            self.viewer.add_geom(self.goal)'''
+            #display colour associated with player
+            self.win_order_labels = []
+            self.total_wins_labels = []
+            for i in range(self.get_n_players()):
+                #l, r, t, b = -square_size_width/2, square_size_width/2, square_size_height/2, -square_size_height/2
+                l, r, t, b = -15, 15, 15, -15
+                agent_col = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
+                agent_col.set_color(*self.agent_cols[i])
+                agent_col_trans = rendering.Transform()
+                agent_col_trans.set_translation(screen_width+30, screen_height-60*(i+1))
+                agent_col.add_attr(agent_col_trans)
+                self.viewer.add_geom(agent_col)
+                player_tag_label = TextLabel(text=self.players[i].player_tag, font_name='Times New Roman', font_size=16, x=screen_width+60, y=screen_height-60*(i+1), anchor_x='left', anchor_y='center', color=(0,0,0,255))
+                self.viewer.add_geom(player_tag_label)
+                win_order_label = TextLabel(text='Pos: '+str(self.game_win_order[i]), font_name='Times New Roman', font_size=12, x=screen_width+175, y=screen_height-60*(i+1)+10, anchor_x='left', anchor_y='center', color=(0,0,150,255))
+                self.viewer.add_geom(win_order_label)
+                self.win_order_labels.append(win_order_label)
+                total_wins_label = TextLabel(text='Wins: '+str(self.players[i].wins), font_name='Times New Roman', font_size=12, x=screen_width+175, y=screen_height-60*(i+1)-10, anchor_x='left', anchor_y='center', color=(0,100,0,255))
+                self.viewer.add_geom(total_wins_label)
+                self.total_wins_labels.append(total_wins_label)
         if self.state is None: return
-        '''goal_pos = list(zip(*np.where(self.state[0] == 1)))[0]'''
         for i, row in enumerate(self.state[1, :, :]):
             for j, val in enumerate(row):
                 if val-1>=0:
@@ -210,9 +231,14 @@ class SnakyEnv(gym.Env):
                 else:
                     self.squares[i][j].set_color(0, 0, 0)
         for i in range(self.get_n_players()):
+            #render agent
             agent_pos = list(zip(*np.where(self.state[2] == i+1)))[0]
             agent_x, agent_y = self.convert_pos_to_xy(agent_pos, (square_size_width, square_size_height))
             self.all_agents_trans[i].set_translation(agent_x, agent_y)
+            #render curren position and agent win order
+            self.win_order_labels[i].label.text='Pos: '+str(self.game_win_order[i])
+            self.total_wins_labels[i].label.text='Wins: '+str(self.players[i].wins)
+            
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
     def convert_pos_to_xy(self, pos, size):
@@ -224,14 +250,17 @@ class SnakyEnv(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
-
+            
 class Player():
-    def __init__(self, env):
+    def __init__(self, env, player_tag=None):
         self.env = env
         self.env.players.append(self)
         self.env.agent_cols.append(tuple(np.random.rand(3)))
         self.player_id = len(self.env.players)
         self.prev_action = None
+        self.player_tag = player_tag
+        if self.player_tag==None: self.player_tag=str(self.player_id)
+        self.wins = 0
     def pick_action(self, observation):
         raise NotImplementedError
         return action
