@@ -11,7 +11,6 @@ def make_oval(width=10, height=10, res=30, filled=True):
         return rendering.FilledPolygon(points)
     else:
         return rendering.PolyLine(points, True)
-
         
 class TextLabel(rendering.Geom):
     def __init__(self, **kwargs):
@@ -19,4 +18,13 @@ class TextLabel(rendering.Geom):
         self.label = pyglet.text.Label(**kwargs)
     def render1(self):
         self.label.draw()
+
+class Image(rendering.Geom):
+    def __init__(self, path, loc):
+        super().__init__()
+        image = pyglet.image.load(path)
+        self.sprite = pyglet.sprite.Sprite(image)
+        self.sprite.x, self.sprite.y = loc['x'], loc['y']
+    def render1(self):
+        self.sprite.draw()
 

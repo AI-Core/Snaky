@@ -203,6 +203,13 @@ class SnakyEnv(gym.Env):
                 self.viewer.add_geom(agent)
                 self.all_agents.append(agent)
                 self.all_agents_trans.append(agenttrans)
+
+            #title and snaky logo
+            #win_order_label = TextLabel(text='Snaky', font_name='Times New Roman', font_size=20, x=screen_width+15, y=screen_height-60, anchor_x='left', anchor_y='center', color=(0,0,0,255))
+            #self.viewer.add_geom(win_order_label)
+            pic = Image('assets/snake.png', {'x':screen_width+17, 'y':screen_height-250, 'z':-10})
+            self.viewer.add_geom(pic)
+            
             #display colour associated with player
             self.win_order_labels = []
             self.total_wins_labels = []
@@ -212,15 +219,15 @@ class SnakyEnv(gym.Env):
                 agent_col = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
                 agent_col.set_color(*self.agent_cols[i])
                 agent_col_trans = rendering.Transform()
-                agent_col_trans.set_translation(screen_width+30, screen_height-60*(i+1))
+                agent_col_trans.set_translation(screen_width+30, screen_height-60*(i+5))
                 agent_col.add_attr(agent_col_trans)
                 self.viewer.add_geom(agent_col)
-                player_tag_label = TextLabel(text=self.players[i].player_tag, font_name='Times New Roman', font_size=16, x=screen_width+60, y=screen_height-60*(i+1), anchor_x='left', anchor_y='center', color=(0,0,0,255))
+                player_tag_label = TextLabel(text=self.players[i].player_tag, font_name='Times New Roman', font_size=14, x=screen_width+60, y=screen_height-60*(i+5), anchor_x='left', anchor_y='center', color=(0,0,0,255))
                 self.viewer.add_geom(player_tag_label)
-                win_order_label = TextLabel(text='Pos: '+str(self.game_win_order[i]), font_name='Times New Roman', font_size=12, x=screen_width+175, y=screen_height-60*(i+1)+10, anchor_x='left', anchor_y='center', color=(0,0,150,255))
+                win_order_label = TextLabel(text='Pos: '+str(self.game_win_order[i]), font_name='Times New Roman', font_size=12, x=screen_width+175, y=screen_height-60*(i+5)+10, anchor_x='left', anchor_y='center', color=(0,0,150,255))
                 self.viewer.add_geom(win_order_label)
                 self.win_order_labels.append(win_order_label)
-                total_wins_label = TextLabel(text='Wins: '+str(self.players[i].wins), font_name='Times New Roman', font_size=12, x=screen_width+175, y=screen_height-60*(i+1)-10, anchor_x='left', anchor_y='center', color=(0,100,0,255))
+                total_wins_label = TextLabel(text='Wins: '+str(self.players[i].wins), font_name='Times New Roman', font_size=12, x=screen_width+175, y=screen_height-60*(i+5)-10, anchor_x='left', anchor_y='center', color=(0,100,0,255))
                 self.viewer.add_geom(total_wins_label)
                 self.total_wins_labels.append(total_wins_label)
         if self.state is None: return
